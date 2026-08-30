@@ -1,21 +1,55 @@
-bin/
-pkg/
-.DS_Store
-*.pyc
-*.swp
+# Terraform
+.terraform/
 *.tfstate
-*.tfstate*
-*~
-.vscode/
-.vs/
-.idea
-.skaffold-*.yaml
-.kubernetes-manifests-*/
-.project
-.eclipse.buildship.core.prefs
-.terraform
-.terraform/*
-.terraform.lock.hcl
+*.tfstate.*
 *.tfvars
-release/wi-kubernetes-manifests.yaml
-*.github
+*.tfvars.json
+crash.log
+crash.*.log
+.terraform.lock.hcl
+
+# Terraform plan files
+*.tfplan
+*.tfplan.json
+
+# SSH / private keys
+*.pem
+*.key
+*.crt
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build artifacts
+target/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
