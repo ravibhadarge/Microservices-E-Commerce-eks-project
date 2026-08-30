@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GIT_REPO_NAME = "Microservices-E-Commerce-eks-project"
-        GIT_EMAIL = "YOUR_GITHUB_EMAIL"
+        GIT_EMAIL = "ravibhadarge15@gmail.com"
         GIT_USER_NAME = "ravibhadarge"
 
         IMAGE_NAME = "checkoutservice"
@@ -38,7 +38,7 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Building ${DOCKER_IMAGE}"
+                        echo "Building ${DOCKER_IMAGE}:${BUILD_NUMBER}"
 
                         docker build \
                             -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
@@ -73,11 +73,9 @@ pipeline {
                     set -e
 
                     echo "Pushing ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-
                     docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                     echo "Pushing ${DOCKER_IMAGE}:latest"
-
                     docker push ${DOCKER_IMAGE}:latest
                 '''
             }
