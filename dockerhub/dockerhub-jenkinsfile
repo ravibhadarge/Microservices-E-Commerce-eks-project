@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['build-push'],
+            description: 'Build and push Docker images to Docker Hub'
+        )
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Docker Version') {
+            steps {
+                sh 'docker --version'
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                          --username "$DOCKER_USERNAME" \
+                          --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build and Push Images') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        SERVICES="emailservice checkoutservice recommendationservice frontend paymentservice productcatalogservice cartservice loadgenerator currencyservice shippingservice adservice"
+
+                        for SERVICE in $SERVICES
+                        do
+                            echo "=========================================="
+                            echo "Building $SERVICE"
+                            echo "=========================================="
+
+                            docker build \
+                              -t "$DOCKER_USERNAME/$SERVICE:latest" \
+                              "./$SERVICE"
+
+                            docker push \
+                              "$DOCKER_USERNAME/$SERVICE:latest"
+                        done
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout || true'
+        }
+    }
+}
