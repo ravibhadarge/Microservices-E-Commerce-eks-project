@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GIT_REPO_NAME = "Microservices-E-Commerce-eks-project"
-        GIT_EMAIL = "YOUR_GITHUB_EMAIL"
+        GIT_EMAIL = "ravibhadarge15@gmail.com"
         GIT_USER_NAME = "ravibhadarge"
 
         IMAGE_NAME = "loadgenerator"
