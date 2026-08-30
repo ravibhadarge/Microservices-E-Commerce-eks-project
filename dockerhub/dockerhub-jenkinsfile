@@ -1,14 +1,6 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(
-            name: 'ACTION',
-            choices: ['build-push'],
-            description: 'Build and push Docker images to Docker Hub'
-        )
-    }
-
     stages {
 
         stage('Checkout') {
@@ -34,8 +26,8 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASSWORD" | docker login \
-                          --username "$DOCKER_USERNAME" \
-                          --password-stdin
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
                     '''
                 }
             }
@@ -53,20 +45,33 @@ pipeline {
                     sh '''
                         set -e
 
-                        SERVICES="emailservice checkoutservice recommendationservice frontend paymentservice productcatalogservice cartservice loadgenerator currencyservice shippingservice adservice"
+                        SERVICES="
+                        frontend
+                        loadgenerator
+                        emailservice
+                        productcatalogservice
+                        currencyservice
+                        shippingservice
+                        adservice
+                        paymentservice
+                        checkoutservice
+                        recommendationservice
+                        "
 
                         for SERVICE in $SERVICES
                         do
                             echo "=========================================="
-                            echo "Building $SERVICE"
+                            echo "Building: $SERVICE"
                             echo "=========================================="
 
                             docker build \
-                              -t "$DOCKER_USERNAME/$SERVICE:latest" \
-                              "./$SERVICE"
+                                -t "$DOCKER_USERNAME/$SERVICE:latest" \
+                                "./src/$SERVICE"
+
+                            echo "Pushing: $DOCKER_USERNAME/$SERVICE:latest"
 
                             docker push \
-                              "$DOCKER_USERNAME/$SERVICE:latest"
+                                "$DOCKER_USERNAME/$SERVICE:latest"
                         done
                     '''
                 }
