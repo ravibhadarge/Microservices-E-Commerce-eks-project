@@ -34,7 +34,7 @@ pipeline {
 
         stage('Docker Image Build') {
             steps {
-                dir('src/cartservice') {
+                dir('src/cartservice/src') {
                     sh '''
                         set -e
 
