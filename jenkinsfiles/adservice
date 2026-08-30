@@ -1,16 +1,18 @@
 pipeline {
-    agent any 
+    agent any
 
     environment {
         GIT_REPO_NAME = "Microservices-E-Commerce-eks-project"
-        GIT_EMAIL = "Yaswanth.arumulla@gmail.com"
-        GIT_USER_NAME = "arumullayaswanth"
+        GIT_EMAIL = "YOUR_GITHUB_EMAIL"
+        GIT_USER_NAME = "ravibhadarge"
+
         IMAGE_NAME = "adservice"
-        REPO_URL = "242201296943.dkr.ecr.us-east-1.amazonaws.com/adservice"
+        DOCKER_IMAGE = "ravibhadarge/adservice"
         YAML_FILE = "adservice.yaml"
     }
 
     stages {
+
         stage('Cleaning Workspace') {
             steps {
                 cleanWs()
@@ -19,51 +21,105 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://github.com/arumullayaswanth/Microservices-E-Commerce-eks-project.git'
+                git branch: 'main',
+                    url: 'https://github.com/ravibhadarge/Microservices-E-Commerce-eks-project.git'
             }
         }
 
-        stage("Docker Image Build") {
+        stage('Docker Version') {
             steps {
-                script {
-                    dir('src/adservice') {
-                        sh 'docker system prune -f'
-                        sh 'docker container prune -f'
-                        sh 'docker build -t adservice .'
-                    }
-                }
+                sh 'docker --version'
             }
         }
 
-        stage("ECR Image Pushing") {
+        stage('Docker Image Build') {
             steps {
-                script {
+                dir('src/adservice') {
                     sh '''
-                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 242201296943.dkr.ecr.us-east-1.amazonaws.com
-                    docker tag adservice:latest 242201296943.dkr.ecr.us-east-1.amazonaws.com/adservice:${BUILD_NUMBER}
-                    docker push 242201296943.dkr.ecr.us-east-1.amazonaws.com/adservice:${BUILD_NUMBER}
+                        set -e
+
+                        echo "Building Docker image..."
+
+                        docker build \
+                            -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                            -t ${DOCKER_IMAGE}:latest \
+                            .
                     '''
                 }
             }
         }
 
-        stage('Update Deployment file') {
+        stage('Docker Hub Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Hub Push') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "Pushing ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+
+                    docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                    echo "Pushing ${DOCKER_IMAGE}:latest"
+
+                    docker push ${DOCKER_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Update Deployment File') {
             steps {
                 dir('kubernetes-files') {
-                    withCredentials([string(credentialsId: 'my-git-pattoken', variable: 'git_token')]) {
+
+                    withCredentials([
+                        string(
+                            credentialsId: 'my-git-pattoken',
+                            variable: 'GIT_TOKEN'
+                        )
+                    ]) {
+
                         sh '''
+                            set -e
+
                             git config user.email "${GIT_EMAIL}"
                             git config user.name "${GIT_USER_NAME}"
-                            echo $BUILD_NUMBER
 
-                            sed -i "s#image:.*#image: ${REPO_URL}:$BUILD_NUMBER#g" ${YAML_FILE}
-                            git add .
-                            git commit -m "Update ${IMAGE_NAME} Image to version ${BUILD_NUMBER}"
-                            git push https://${git_token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+                            echo "Updating ${YAML_FILE}"
+
+                            sed -i "s#image:.*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#g" "${YAML_FILE}"
+
+                            git add "${YAML_FILE}"
+
+                            git diff --cached --quiet || \
+                            git commit -m "Update ${IMAGE_NAME} image to version ${BUILD_NUMBER}"
+
+                            git push https://${GIT_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
                         '''
                     }
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout || true'
         }
     }
 }
