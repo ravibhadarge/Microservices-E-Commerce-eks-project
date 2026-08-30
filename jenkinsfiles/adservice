@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GIT_REPO_NAME = "Microservices-E-Commerce-eks-project"
-        GIT_EMAIL = "YOUR_GITHUB_EMAIL"
+        GIT_EMAIL = "ravibhadarge15@gmail.com"
         GIT_USER_NAME = "ravibhadarge"
 
         IMAGE_NAME = "adservice"
@@ -38,7 +38,7 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "Building Docker image..."
+                        echo "Building ${DOCKER_IMAGE}:${BUILD_NUMBER}"
 
                         docker build \
                             -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
@@ -59,6 +59,8 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                        set -e
+
                         echo "$DOCKER_PASSWORD" | docker login \
                             --username "$DOCKER_USERNAME" \
                             --password-stdin
@@ -73,11 +75,9 @@ pipeline {
                     set -e
 
                     echo "Pushing ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-
                     docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                     echo "Pushing ${DOCKER_IMAGE}:latest"
-
                     docker push ${DOCKER_IMAGE}:latest
                 '''
             }
@@ -86,14 +86,12 @@ pipeline {
         stage('Update Deployment File') {
             steps {
                 dir('kubernetes-files') {
-
                     withCredentials([
                         string(
                             credentialsId: 'my-git-pattoken',
                             variable: 'GIT_TOKEN'
                         )
                     ]) {
-
                         sh '''
                             set -e
 
