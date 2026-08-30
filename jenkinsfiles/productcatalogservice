@@ -37,6 +37,9 @@ pipeline {
                 dir('src/productcatalogservice') {
                     sh '''
                         set -e
+
+                        echo "Building ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+
                         docker build \
                             -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
                             -t ${DOCKER_IMAGE}:latest \
@@ -56,9 +59,13 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                        set -e
+
                         echo "$DOCKER_PASSWORD" | docker login \
                             --username "$DOCKER_USERNAME" \
                             --password-stdin
+
+                        docker info | grep -E "Username|Registry" || true
                     '''
                 }
             }
@@ -68,7 +75,11 @@ pipeline {
             steps {
                 sh '''
                     set -e
+
+                    echo "Pushing ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                    echo "Pushing ${DOCKER_IMAGE}:latest"
                     docker push ${DOCKER_IMAGE}:latest
                 '''
             }
@@ -89,14 +100,20 @@ pipeline {
                             git config user.email "${GIT_EMAIL}"
                             git config user.name "${GIT_USER_NAME}"
 
+                            echo "Updating ${YAML_FILE}"
+
                             sed -i "s#image:.*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#g" "${YAML_FILE}"
+
+                            grep -n "image:" "${YAML_FILE}"
 
                             git add "${YAML_FILE}"
 
-                            git diff --cached --quiet || \
-                            git commit -m "Update ${IMAGE_NAME} image to version ${BUILD_NUMBER}"
-
-                            git push https://${GIT_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+                            if git diff --cached --quiet; then
+                                echo "No deployment change required"
+                            else
+                                git commit -m "Update ${IMAGE_NAME} image to version ${BUILD_NUMBER}"
+                                git push https://${GIT_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+                            fi
                         '''
                     }
                 }
