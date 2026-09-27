@@ -28,7 +28,7 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: ravibhadarge/adservice:11
+        image: ravibhadarge/ecommerce-adservice:11
         ports:
         - containerPort: 9555
         env:
